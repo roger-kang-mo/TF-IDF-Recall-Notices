@@ -9,21 +9,25 @@ import jxl.read.biff.BiffException;
 public class WordParser {
 
 	private ArrayList<Doc> docs = new ArrayList<Doc>();
-	private int summarySpecifier;
-
+	private int summarySpecifier, count;
 
 	public static void main(String[] args){
-			new WordParser();
+		int docs = 3000;
+
+		if(Integer.parseInt(args[0]) == 0) { System.out.println("No parameter specified. Using 3000 documents."); }
+		else{ docs = Integer.parseInt(args[1]); }
+
+		new WordParser(docs);
 	}
 
-	public WordParser(){
+	public WordParser(int pCount){
 
-		int count = 3000;
+		count = pCount;
 
 		System.out.println(count + " documents scanned.\n");
 
 		System.out.println("Defect Summary");
-		docs = loadFile("NHTSA_DATA_5.xlsx", count);
+		docs = loadFile("NHTSA_DATA_5.xlsx");
 		summarySpecifier = 0;
 		printResults(runtfidf());
 
@@ -31,14 +35,14 @@ public class WordParser {
 		System.out.println("\n");
 		System.out.println("Consequence Summary");
 		summarySpecifier++;
-		docs = loadFile("NHTSA_DATA_5.xlsx", count);
+		docs = loadFile("NHTSA_DATA_5.xlsx");
 		printResults(runtfidf());
 
 		docs.clear();
 		System.out.println("\n");
 		System.out.println("Corrective Summary");
 		summarySpecifier++;
-		docs = loadFile("NHTSA_DATA_5.xlsx", count);
+		docs = loadFile("NHTSA_DATA_5.xlsx");
 		printResults(runtfidf());
 
 	}	
@@ -53,7 +57,7 @@ public class WordParser {
 	}
 
 
-	private ArrayList<Doc> loadFile(String fName, int countTo){
+	private ArrayList<Doc> loadFile(String fName){
 
 		ArrayList<Doc> retVal = new ArrayList<Doc>();
 
@@ -62,7 +66,7 @@ public class WordParser {
 
 			Sheet sheet1 = wb.getSheet(0);
 
-			for(int i = 1; i < countTo; i++){
+			for(int i = 1; i < count; i++){
 				Doc tempDoc = new Doc(sheet1.getCell(summarySpecifier, i).getContents().trim());
 				retVal.add(tempDoc);
 				if(tempDoc.isEmpty()){
@@ -83,11 +87,15 @@ public class WordParser {
 	}
 
 	private WordCount[] runtfidf(){
+
 		WordCount[] topWords = new WordCount[3];
+
 		for(int k = 0; k < 3; k++)
 			topWords[k] = new WordCount("");
+
 		int occurrence;
 		double score, lowestTopScore = 0.0;
+
 		for(Doc d:docs){
 			WordCount[] temp = d.getWords();
 
@@ -95,12 +103,13 @@ public class WordParser {
 				occurrence = getOccurrenceCount(temp[i].getWord());
 				score = Math.log((double)docs.size()/(double)occurrence) * temp[i].getTermFrequency();
 				temp[i].setScore(score);
+
 				if(i < 3){
-					if(i==1)
-						lowestTopScore = temp[i].getScore();
+					if(i==1) { lowestTopScore = temp[i].getScore(); }
+
 					topWords[i] = temp[i];
-					if(topWords[i].getScore() < lowestTopScore)
-						lowestTopScore = topWords[i].getScore();
+
+					if(topWords[i].getScore() < lowestTopScore) { lowestTopScore = topWords[i].getScore(); }
 				}
 				else{
 					if(score > lowestTopScore && notAlreadyIn(topWords, temp[i].getWord())){
@@ -123,9 +132,7 @@ public class WordParser {
 		boolean retVal = true;
 
 		for(int i = 0; i < wordList.length && retVal; i++){
-			if(wordList[i].getWord().equalsIgnoreCase(word))
-				retVal = false;
-
+			if(wordList[i].getWord().equalsIgnoreCase(word)) { retVal = false; }
 		}
 
 		return retVal;
@@ -133,21 +140,24 @@ public class WordParser {
 
 	private int findLowest(WordCount[] inList){
 		int lowest = inList[0].getCount(), index = 0;
+
 		for(int i = 0; i < inList.length; i++)
 			if(inList[i].getCount() < lowest){
 				lowest = inList[i].getCount();
 				index = i;
 			}	
-		return index;
 
+		return index;
 	}
 
 	private int getOccurrenceCount(String word){
 		int retVal = 0;
+
 		for(Doc d: docs){
 			if(d.contains(word))
 				retVal++;
 		}
+
 		return retVal;
 	}
 
@@ -165,7 +175,6 @@ public class WordParser {
 			
 			Arrays.sort(words);
 			words = chopUp(words);
-
 		}
 
 		private WordCount[] getWordsAndCounts(String[] wordsList){
@@ -176,12 +185,15 @@ public class WordParser {
 					wordsList[k] = " ";
 				}
 			}
+			
 			String tempWord = "";
 			int count = 0;
 			String tWord = "";
 
 			for(int i = 0; i < wordsList.length; i++){
 				tWord = wordsList[i];
+
+				// TF-IDF really takes care of this by itself, but I'm doing it anyway
 				if(!(tWord.length() <= 2) &&
 						!tWord.equalsIgnoreCase("the") &&
 						!tWord.equalsIgnoreCase("not") &&
@@ -217,6 +229,7 @@ public class WordParser {
 			WordCount[] retVal;
 			int chop = inArray.length/3;
 			retVal = new WordCount[chop];
+			
 			for(int i= 0; i < chop; i++){
 				if((i+chop+shift >= 0)&&(i+chop+shift < inArray.length))
 					retVal[i] = inArray[i+chop+shift];
